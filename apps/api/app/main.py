@@ -1,15 +1,17 @@
 from fastapi import FastAPI
 
+from app.core.config import settings
+
 app = FastAPI(
-    title="SemanticFeed API",
+    title=settings.APP_NAME,
     description="AI system for managing information overload",
-    version="0.1.0"
+    version=settings.APP_VERSION,
 )
 
 
 @app.get("/")
 def root():
-    return {"message": "SemanticFeed API"}
+    return {"message": settings.APP_NAME}
 
 
 @app.get("/health")
@@ -19,4 +21,7 @@ def health_check():
 
 @app.get("/version")
 def version():
-    return {"version": "0.1.0"}
+    return {
+        "version": settings.APP_VERSION,
+        "debug": settings.DEBUG
+    }
