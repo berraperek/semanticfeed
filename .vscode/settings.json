@@ -1,0 +1,9 @@
+{
+  "python.defaultInterpreterPath": "/Users/berraperek/Projects/semanticfeed/apps/api/.venv/bin/python",
+  "python.analysis.venvPath": "/Users/berraperek/Projects/semanticfeed/apps/api",
+  "python.analysis.venv": ".venv",
+  "python.analysis.extraPaths": [
+    "/Users/berraperek/Projects/semanticfeed/apps/api"
+  ],
+  "python.analysis.autoImportCompletions": true
+}
