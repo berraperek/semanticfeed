@@ -10,18 +10,18 @@ app = FastAPI(
 
 
 @app.get("/")
-def root():
+def root() -> dict[str, str]:
     return {"message": settings.APP_NAME}
 
 
 @app.get("/health")
-def health_check():
+def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
 @app.get("/version")
-def version():
+def version() -> dict[str, str | bool]:
     return {
         "version": settings.APP_VERSION,
-        "debug": settings.DEBUG
+        "debug": settings.DEBUG,
     }
