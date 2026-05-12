@@ -1,3 +1,4 @@
+from app.api.router import router
 from fastapi import FastAPI
 
 from app.core.config import settings
@@ -8,6 +9,7 @@ app = FastAPI(
     version=settings.APP_VERSION,
 )
 
+app.include_router(router)
 
 @app.get("/")
 def root() -> dict[str, str]:
