@@ -103,7 +103,6 @@ semanticfeed/
 ├── tests/                      # Future: integration/e2e tests
 ├── docs/
 │   ├── architecture.md
-│   ├── day-1-notes.md
 │   └── monolith-vs-microservices.md
 └── README.md
 ```
