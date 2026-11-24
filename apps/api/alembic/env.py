@@ -1,21 +1,18 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
+import app.models.paper  # noqa: F401  (registers models on Base.metadata)
+from alembic import context
 from app.core.config import settings
 from app.db.base import Base
-from app.models.content_item import ContentItem
-
-from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
 config.set_main_option(
-    "sqlalchemy.url",
-    settings.DATABASE_URL
+    "sqlalchemy.url", config.attributes.get("url") or settings.DATABASE_URL
 )
 
 # Interpret the config file for Python logging.
