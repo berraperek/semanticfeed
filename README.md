@@ -1,241 +1,124 @@
 # SemanticFeed
 
-> An AI-powered personal knowledge management system that helps you save, understand, and retrieve information without getting overwhelmed.
+> Semantic search and a daily interest feed over newly published neuroscience preprints.
 
-SemanticFeed ingests articles, PDFs, notes, and links — then automatically summarizes, classifies, and ranks them. When you need something back, semantic search and RAG let you query your knowledge base in natural language.
+Neuroscience preprints come out faster than anyone can browse them, and keyword search misses papers that describe the same idea in different words. SemanticFeed pulls new papers from the [bioRxiv](https://www.biorxiv.org/) neuroscience category and embeds their titles and abstracts. You can then:
 
----
+- **Search** in plain language, e.g. *"hippocampal replay during sleep"*, and get the closest papers ranked by semantic similarity.
+- **Follow a feed** of your saved interests, which shows the new papers from the last few days that are closest to each one.
 
-## Table of Contents
-
-- [Features](#features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [API Endpoints](#api-endpoints)
-- [Development](#development)
-- [Design Decisions](#design-decisions)
-- [Roadmap](#roadmap)
+Everything runs locally. Embeddings are computed with a local model, so no paid API is needed.
 
 ---
 
-## Features
+## Status
 
-| Feature | Status |
-|---|---|
-| URL ingestion | 🔲 Planned |
-| PDF ingestion | 🔲 Planned |
-| Content summarization (LLM) | 🔲 Planned |
-| Topic classification | 🔲 Planned |
-| Difficulty detection | 🔲 Planned |
-| Reading time estimation | 🔲 Planned |
-| Semantic search (pgvector) | 🔲 Planned |
-| Priority ranking | 🔲 Planned |
-| RAG-based Q&A | 🔲 Planned |
-| REST API | ✅ In progress |
-| Database models + migrations | ✅ In progress |
+The project is built in small steps that each end with something that runs. The full design is in [`docs/design/neuro-paper-search.md`](docs/design/neuro-paper-search.md).
+
+| Step | What | Status |
+|---|---|---|
+| 1 | Cleanup + Postgres with pgvector (`papers` table) | ✅ Done |
+| 2 | Ingest bioRxiv neuroscience papers | 🔲 Planned |
+| 3 | Embed papers (model chosen by side-by-side comparison) | 🔲 Planned |
+| 4 | Search API (`/api/v1/search`) | 🔲 Planned |
+| 5 | Web app (Next.js) with a search page | 🔲 Planned |
+| 6 | Interest feed | 🔲 Planned |
+| 7 | Daily refresh | 🔲 Planned |
+
+After the MVP: a public demo, "similar papers", a topic map, trend charts, and optional LLM summaries.
 
 ---
 
 ## Architecture
 
-SemanticFeed uses a **modular monolith** architecture. All logic lives in a single deployable FastAPI application, but code is organized by domain (ingestion, processing, search, etc.) to keep things maintainable and easy to extract later if needed.
-
-See [`docs/monolith-vs-microservices.md`](docs/monolith-vs-microservices.md) for the reasoning behind this decision.
-
-High-level data flow:
-
 ```
-User → API → Ingestion Layer → Processing (LLM) → PostgreSQL + pgvector
-                                                          ↑
-                                               Semantic Search / RAG
+bioRxiv API → ingest → papers (Postgres) → embed → pgvector
+                                                     ↓
+                               search API / interest feed → web app
 ```
 
----
+The API is a modular FastAPI monolith. More detail is in [`docs/architecture.md`](docs/architecture.md).
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| API framework | FastAPI |
-| Language | Python 3.13 |
-| Database | PostgreSQL |
-| Vector search | pgvector |
-| ORM | SQLAlchemy 2.x (declarative, mapped columns) |
-| Migrations | Alembic |
-| Config management | pydantic-settings |
-| Caching / queues | Redis *(planned)* |
-| Containerization | Docker *(planned)* |
-| Testing | pytest |
-| Linting | Ruff |
-| Type checking | mypy (strict) |
-
----
+| API | FastAPI, Python 3.12 |
+| Database | PostgreSQL 17 + pgvector (Docker Compose) |
+| ORM / migrations | SQLAlchemy 2.x, Alembic |
+| Config | pydantic-settings |
+| Web app | Next.js *(step 5)* |
+| Quality | pytest, Ruff, mypy (strict) |
 
 ## Project Structure
 
 ```
 semanticfeed/
-├── apps/
-│   └── api/                    # FastAPI application
-│       ├── app/
-│       │   ├── api/            # Route handlers (versioned)
-│       │   ├── core/
-│       │   │   └── config.py   # Environment-based settings (pydantic-settings)
-│       │   ├── db/
-│       │   │   ├── base.py     # SQLAlchemy DeclarativeBase
-│       │   │   └── session.py  # Engine + SessionLocal factory
-│       │   ├── models/
-│       │   │   └── content_item.py  # ContentItem ORM model
-│       │   └── main.py         # FastAPI app entry point
-│       ├── alembic/            # Database migrations
-│       │   └── env.py
-│       ├── tests/
-│       │   └── test_health.py
-│       ├── .env.example        # Environment variable template
-│       ├── pyproject.toml      # Tool config (ruff, mypy, pytest)
-│       └── requirements.txt
-├── services/                   # Future: background workers, AI engine
-├── infrastructure/             # Future: Terraform, k8s configs
-├── docker/                     # Future: Dockerfiles, compose files
-├── scripts/                    # Future: seed scripts, utilities
-├── tests/                      # Future: integration/e2e tests
-├── docs/
-│   ├── architecture.md
-│   └── monolith-vs-microservices.md
-└── README.md
+├── apps/api/               # FastAPI application
+│   ├── app/
+│   │   ├── api/            # Versioned routers (/api/v1)
+│   │   ├── core/config.py  # Settings (env / .env, local defaults)
+│   │   ├── db/             # SQLAlchemy base + session
+│   │   └── models/         # ORM models (Paper)
+│   ├── alembic/            # Migrations
+│   └── tests/
+├── docker/initdb/          # Creates the test database on first start
+├── docker-compose.yml      # Postgres + pgvector on localhost:5433
+└── docs/                   # Design, plans, architecture
 ```
 
 ---
 
 ## Getting Started
 
-### Prerequisites
-
-- Python 3.13+
-- PostgreSQL running locally (or via Docker)
-
-### 1. Clone the repository
+Prerequisites: Python 3.12 and Docker.
 
 ```bash
 git clone https://github.com/berraperek/semanticfeed.git
 cd semanticfeed
+docker compose up -d          # Postgres + pgvector on port 5433
 ```
-
-### 2. Set up the virtual environment
 
 ```bash
 cd apps/api
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-### 3. Configure environment variables
-
-```bash
 cp .env.example .env
-```
-
-Edit `.env`:
-
-```env
-APP_NAME=SemanticFeed API
-APP_VERSION=0.1.0
-DEBUG=true
-DATABASE_URL=postgresql://your_user:your_password@localhost:5432/semanticfeed
-```
-
-### 4. Run database migrations
-
-```bash
 alembic upgrade head
-```
-
-### 5. Start the development server
-
-```bash
 uvicorn app.main:app --reload
 ```
 
-The API will be available at `http://localhost:8000`.
+The API runs at `http://localhost:8000`, with interactive docs at `/docs`.
 
-Interactive docs: `http://localhost:8000/docs`
-
----
+> **Upgrading from an older checkout?** Copy `.env.example` to `.env` again. The database moved to the compose service on port 5433, and the old migrations were replaced.
 
 ## API Endpoints
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/` | Root — returns app name |
-| `GET` | `/health` | Health check — returns `{"status": "ok"}` |
-| `GET` | `/version` | Version info — returns version and debug flag |
-
-More endpoints coming as features are built.
-
----
+| `GET` | `/` | App name |
+| `GET` | `/api/v1/health` | Health check, returns `{"status": "ok"}` |
+| `GET` | `/api/v1/version` | Version and debug flag |
 
 ## Development
 
-### Run tests
-
-```bash
-pytest
-```
-
-### Lint
-
-```bash
-ruff check .
-ruff check --fix .   # auto-fix
-```
-
-### Type check
-
-```bash
-mypy .
-```
-
-### Run all checks (CI-style)
+Tests need the compose database running (`docker compose up -d`). They use a separate `semanticfeed_test` database.
 
 ```bash
 ruff check . && mypy . && pytest
 ```
 
-### Create a new migration
+Create a migration after changing a model:
 
 ```bash
 alembic revision --autogenerate -m "describe your change"
 alembic upgrade head
 ```
 
----
-
 ## Design Decisions
 
-**Modular monolith over microservices** — At this stage, development speed and simplicity matter more than independent scaling. The code is organized by domain to make a future split straightforward if needed.
-
-**SQLAlchemy 2.x with mapped columns** — Using the modern `Mapped[T]` + `mapped_column()` API for type-safe, IDE-friendly ORM models.
-
-**pydantic-settings for config** — All configuration comes from environment variables. No hardcoded values. `.env` files are supported for local development.
-
-**Alembic for migrations** — Schema changes are tracked and versioned. `autogenerate` picks up changes from SQLAlchemy models automatically.
-
-**Strict mypy + Ruff** — Enforced from day one to keep the codebase healthy as it grows.
-
----
-
-## Roadmap
-
-- [ ] `ContentItem` CRUD endpoints
-- [ ] URL ingestion pipeline
-- [ ] PDF ingestion pipeline  
-- [ ] LLM summarization (OpenAI / local model)
-- [ ] Topic classification
-- [ ] pgvector integration for semantic search
-- [ ] RAG-based Q&A endpoint
-- [ ] Authentication (JWT)
-- [ ] Docker Compose setup
-- [ ] CI/CD pipeline
+- **Modular monolith.** One deployable FastAPI app, organized by domain. That's simpler at this stage, and parts can be split out later if needed.
+- **pgvector inside Postgres.** Papers and their embeddings live in one database, so search is a single SQL query with no separate vector store.
+- **Local embeddings.** There's no dependency on a paid API for the core search loop.
+- **Strict mypy + Ruff from day one.** This keeps the codebase healthy as it grows.
